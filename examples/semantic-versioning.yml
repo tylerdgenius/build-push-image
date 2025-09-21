@@ -1,0 +1,56 @@
+name: Semantic Version Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
+    
+    - name: Build and push Docker image
+      id: build
+      uses: your-username/build-push-image@v1
+      with:
+        docker_username: ${{ secrets.DOCKER_USERNAME }}
+        docker_password: ${{ secrets.DOCKER_PASSWORD }}
+        docker_image_name: myorg/myapp
+        release_version: ${{ steps.version.outputs.VERSION }}
+    
+    - name: Also tag as latest
+      id: latest
+      uses: your-username/build-push-image@v1
+      with:
+        docker_username: ${{ secrets.DOCKER_USERNAME }}
+        docker_password: ${{ secrets.DOCKER_PASSWORD }}
+        docker_image_name: myorg/myapp
+        release_version: latest
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.version.outputs.VERSION }}
+        body: |
+          Docker image: `${{ steps.build.outputs.image }}`
+          
+          Pull with:
+          ```bash
+          docker pull ${{ steps.build.outputs.image }}
+          ```
+        draft: false
+        prerelease: false

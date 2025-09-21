@@ -1,0 +1,56 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Build Docker image (test only)
+      id: test-build
+      uses: your-username/build-push-image@v1
+      with:
+        docker_username: ${{ secrets.DOCKER_USERNAME }}
+        docker_password: ${{ secrets.DOCKER_PASSWORD }}
+        docker_image_name: myorg/myapp-pr
+        release_version: pr-${{ github.event.number }}-${{ github.sha }}
+    
+    - name: Test the built image
+      run: |
+        echo "Testing image: ${{ steps.test-build.outputs.image }}"
+        
+        # Run the container for testing
+        docker run --rm -d --name test-container ${{ steps.test-build.outputs.image }}
+        
+        # Wait a moment for startup
+        sleep 10
+        
+        # Run basic health checks
+        if docker ps | grep test-container; then
+          echo "✅ Container is running"
+        else
+          echo "❌ Container failed to start"
+          exit 1
+        fi
+        
+        # Stop the test container
+        docker stop test-container
+    
+    - name: Comment on PR
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `🐳 Docker image built successfully: \`${{ steps.test-build.outputs.image }}\`
+            
+            The image has been pushed and tested. Ready for review!`
+          })

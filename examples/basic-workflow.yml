@@ -1,0 +1,27 @@
+name: Basic Build and Push
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Build and push Docker image
+      id: build
+      uses: your-username/build-push-image@v1
+      with:
+        docker_username: ${{ secrets.DOCKER_USERNAME }}
+        docker_password: ${{ secrets.DOCKER_PASSWORD }}
+        docker_image_name: myorg/myapp
+        release_version: ${{ github.sha }}
+    
+    - name: Print image details
+      run: |
+        echo "Successfully built and pushed: ${{ steps.build.outputs.image }}"
+        echo "Image can be pulled with: docker pull ${{ steps.build.outputs.image }}"

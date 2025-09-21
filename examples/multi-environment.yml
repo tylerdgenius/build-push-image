@@ -1,0 +1,52 @@
+name: Multi-Environment Build
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set environment variables
+      id: env
+      run: |
+        case ${{ github.ref }} in
+          refs/heads/main)
+            echo "ENVIRONMENT=production" >> $GITHUB_OUTPUT
+            echo "IMAGE_SUFFIX=" >> $GITHUB_OUTPUT
+            echo "VERSION=${{ github.sha }}" >> $GITHUB_OUTPUT
+            ;;
+          refs/heads/staging)
+            echo "ENVIRONMENT=staging" >> $GITHUB_OUTPUT
+            echo "IMAGE_SUFFIX=-staging" >> $GITHUB_OUTPUT
+            echo "VERSION=staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+            ;;
+          refs/heads/develop)
+            echo "ENVIRONMENT=development" >> $GITHUB_OUTPUT
+            echo "IMAGE_SUFFIX=-dev" >> $GITHUB_OUTPUT
+            echo "VERSION=dev-${{ github.sha }}" >> $GITHUB_OUTPUT
+            ;;
+        esac
+    
+    - name: Build and push Docker image
+      id: build
+      uses: your-username/build-push-image@v1
+      with:
+        docker_username: ${{ secrets.DOCKER_USERNAME }}
+        docker_password: ${{ secrets.DOCKER_PASSWORD }}
+        docker_image_name: myorg/myapp${{ steps.env.outputs.IMAGE_SUFFIX }}
+        release_version: ${{ steps.env.outputs.VERSION }}
+    
+    - name: Deploy to environment
+      run: |
+        echo "Deploying ${{ steps.build.outputs.image }} to ${{ steps.env.outputs.ENVIRONMENT }}"
+        # Add your deployment logic here
+        # For example:
+        # - Update Kubernetes deployment
+        # - Trigger deployment webhook
+        # - Update container service

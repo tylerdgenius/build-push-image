@@ -1,0 +1,72 @@
+name: Matrix Builds
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+jobs:
+  build-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - { name: "alpine", suffix: "-alpine", dockerfile: "Dockerfile.alpine" }
+          - { name: "debian", suffix: "", dockerfile: "Dockerfile" }
+          - { name: "minimal", suffix: "-minimal", dockerfile: "Dockerfile.minimal" }
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set version
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION=${{ github.sha }}
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+    
+    - name: Copy variant Dockerfile
+      run: |
+        if [ "${{ matrix.variant.dockerfile }}" != "Dockerfile" ]; then
+          cp ${{ matrix.variant.dockerfile }} Dockerfile
+        fi
+    
+    - name: Build and push Docker image variant
+      id: build
+      uses: your-username/build-push-image@v1
+      with:
+        docker_username: ${{ secrets.DOCKER_USERNAME }}
+        docker_password: ${{ secrets.DOCKER_PASSWORD }}
+        docker_image_name: myorg/myapp${{ matrix.variant.suffix }}
+        release_version: ${{ steps.version.outputs.VERSION }}
+    
+    - name: Test variant
+      run: |
+        echo "Testing ${{ matrix.variant.name }} variant: ${{ steps.build.outputs.image }}"
+        
+        # Run basic smoke test
+        docker run --rm ${{ steps.build.outputs.image }} --version || echo "No version command available"
+        
+        # Check image size
+        SIZE=$(docker images ${{ steps.build.outputs.image }} --format "table {{.Size}}" | tail -n +2)
+        echo "Image size: $SIZE"
+
+  # Summary job that depends on all matrix builds
+  build-summary:
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Check build results
+      run: |
+        if [ "${{ needs.build-matrix.result }}" == "success" ]; then
+          echo "✅ All image variants built successfully"
+        else
+          echo "❌ Some image variants failed to build"
+          exit 1
+        fi
