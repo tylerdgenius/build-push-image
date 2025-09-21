@@ -51,3 +51,7 @@ runs:
       shell: bash
       run: |
         echo "image=${{ inputs.docker_image_name }}:${{ inputs.release_version }}" >> $GITHUB_OUTPUT
+
+branding:
+  icon: 'send'
+  color: 'blue'
