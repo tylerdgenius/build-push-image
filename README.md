@@ -48,7 +48,7 @@ jobs:
     
     - name: Build and push Docker image
       id: build
-      uses: your-username/build-push-image@v1
+      uses: tylerdgenius/build-push-image@v1
       with:
         docker_username: ${{ secrets.DOCKER_USERNAME }}
         docker_password: ${{ secrets.DOCKER_PASSWORD }}
@@ -82,7 +82,7 @@ jobs:
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
     
     - name: Build and push Docker image
-      uses: your-username/build-push-image@v1
+      uses: tylerdgenius/build-push-image@v1
       with:
         docker_username: ${{ secrets.DOCKER_USERNAME }}
         docker_password: ${{ secrets.DOCKER_PASSWORD }}
@@ -119,7 +119,7 @@ jobs:
         fi
     
     - name: Build and push Docker image
-      uses: your-username/build-push-image@v1
+      uses: tylerdgenius/build-push-image@v1
       with:
         docker_username: ${{ secrets.DOCKER_USERNAME }}
         docker_password: ${{ secrets.DOCKER_PASSWORD }}
