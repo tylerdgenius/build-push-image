@@ -1,4 +1,4 @@
-name: "Build and push docker image"
+name: "Login, build and push docker image"
 description: "Builds and pushes a docker image to a registry with caching"
 
 inputs:
